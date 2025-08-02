@@ -1,0 +1,16 @@
+services:
+    backend:
+        container_name: weather-station
+        restart: always
+        build: .
+        volumes:
+            - ./:/app
+        image: Villarrealized/weather-station
+        healthcheck:
+            test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+            interval: 60s
+            timeout: 30s
+            retries: 3
+            start_period: 5s
+        ports:
+            - 8367:8367
