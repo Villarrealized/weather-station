@@ -1,6 +1,6 @@
 FROM golang:1.24-alpine AS builder
 WORKDIR /build
-COPY . .
+COPY go.mod go.sum ./
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -trimpath -o weather-station
 
@@ -10,10 +10,10 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy the Go binary
 COPY --from=builder /build/weather-station /app/
-
-RUN chmod +x /app/weather-station
-
 WORKDIR /app
+
+RUN chmod +x weather-station
+
 USER appuser
 EXPOSE 8367
-CMD ["/app/weather-station"]
+CMD ["./weather-station"]
