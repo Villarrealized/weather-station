@@ -3,8 +3,6 @@ services:
         container_name: weather-station
         restart: always
         build: .
-        volumes:
-            - ./:/app
         image: Villarrealized/weather-station
         healthcheck:
             test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
