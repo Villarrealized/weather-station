@@ -13,7 +13,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /build/weather-station .
 
-RUN chmod +x weather-station
+RUN chmod +x weather-station \
+    && chown appuser:appgroup weather-station
 
 USER appuser
 EXPOSE 8367
