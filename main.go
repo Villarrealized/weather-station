@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,10 +19,44 @@ type TempSensorData struct {
 	Temperature float32 `json:"temperature"`
 }
 
+type Device struct {
+	MacAddress string
+	Name       string
+}
+
+type TempSensorReading struct {
+	Temperature float32 `json:"temperature"`
+	Timestamp   string  `json:"timestamp"`
+}
+
+var devices []Device = []Device{
+	{MacAddress: "2C:F4:32:1A:87:C0", Name: "Garage"},
+}
+
+var currentReadings map[string]TempSensorReading
+
+func getDeviceName(macAddress string) string {
+	for _, device := range devices {
+		if device.MacAddress == macAddress {
+			return device.Name
+		}
+	}
+	return macAddress
+}
+
 func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	r.Get("/temperature", func(w http.ResponseWriter, r *http.Request) {
+		readings, err := json.Marshal(currentReadings)
+		if err != nil {
+			slog.Error("failed to marshall temperature data", "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		w.Write(readings)
+	})
 
 	r.Post("/temperature", func(w http.ResponseWriter, r *http.Request) {
 		var data TempSensorData
@@ -31,6 +66,9 @@ func main() {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		deviceName := getDeviceName(data.MacAddress)
+		currentReadings[deviceName] = TempSensorReading{Temperature: data.Temperature, Timestamp: time.Now().String()}
 
 		fmt.Printf("Device: %s\nTemp: %.2f\n\n", data.MacAddress, data.Temperature)
 		w.WriteHeader(http.StatusOK)
