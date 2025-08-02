@@ -49,6 +49,8 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	currentReadings = make(map[string]TempSensorReading)
+
 	r.Get("/temperature", func(w http.ResponseWriter, r *http.Request) {
 		readings, err := json.Marshal(currentReadings)
 		if err != nil {
