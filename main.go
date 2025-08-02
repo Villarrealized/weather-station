@@ -50,6 +50,11 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	currentReadings = make(map[string]TempSensorReading)
+	location, err := time.LoadLocation("America/Denver")
+	if err != nil {
+		slog.Error("failed to get location", "error", err)
+		panic("location fetching failed")
+	}
 
 	r.Get("/temperature", func(w http.ResponseWriter, r *http.Request) {
 		readings, err := json.Marshal(currentReadings)
@@ -70,7 +75,8 @@ func main() {
 		}
 
 		deviceName := getDeviceName(data.MacAddress)
-		currentReadings[deviceName] = TempSensorReading{Temperature: data.Temperature, Timestamp: time.Now().String()}
+		now := time.Now().In(location)
+		currentReadings[deviceName] = TempSensorReading{Temperature: data.Temperature, Timestamp: now.String()}
 
 		fmt.Printf("Device: %s\nTemp: %.2f\n\n", data.MacAddress, data.Temperature)
 		w.WriteHeader(http.StatusOK)
