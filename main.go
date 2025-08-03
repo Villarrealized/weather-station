@@ -59,7 +59,7 @@ func main() {
 		panic("location fetching failed")
 	}
 
-	r.Get("/temperature", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		readings, err := json.Marshal(currentReadings)
 		if err != nil {
 			slog.Error("failed to marshall temperature data", "error", err)
