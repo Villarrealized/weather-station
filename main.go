@@ -13,6 +13,8 @@ import (
 )
 
 const port string = "8367"
+const minTempF float32 = -67.0
+const maxTempF float32 = 257.0
 
 type TempSensorData struct {
 	MacAddress  string  `json:"mac"`
@@ -30,7 +32,8 @@ type TempSensorReading struct {
 }
 
 var devices []Device = []Device{
-	{MacAddress: "2C:F4:32:1A:87:C0", Name: "Garage"},
+	{MacAddress: "2C:F4:32:1A:87:C0", Name: "Office"},
+	{MacAddress: "C8:C9:A3:5E:03:8C", Name: "Garage"},
 }
 
 var currentReadings map[string]TempSensorReading
@@ -75,10 +78,19 @@ func main() {
 		}
 
 		deviceName := getDeviceName(data.MacAddress)
+
+		// sometimes the temp can be outside the valid range
+		// we will log an error and ignore it as a bad read
+		if data.Temperature < minTempF || data.Temperature > maxTempF {
+			slog.Error("temperature outside of valid range", "device", deviceName, "temp", data.Temperature)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		now := time.Now().In(location)
 		currentReadings[deviceName] = TempSensorReading{Temperature: data.Temperature, Timestamp: now.String()}
 
-		fmt.Printf("Device: %s\nTemp: %.2f\n\n", data.MacAddress, data.Temperature)
+		slog.Info("New reading", "device", deviceName, "temp", data.Temperature)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
