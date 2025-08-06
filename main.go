@@ -35,6 +35,7 @@ var devices []Device = []Device{
 	{MacAddress: "2C:F4:32:1A:87:C0", Name: "Office"},
 	{MacAddress: "C8:C9:A3:5E:03:8C", Name: "Backyard"},
 	{MacAddress: "4C:11:AE:07:92:19", Name: "Garage"},
+	{MacAddress: "24:D7:EB:C6:8E:6D", Name: "Server Room"},
 }
 
 var currentReadings map[string]TempSensorReading
