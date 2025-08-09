@@ -38,6 +38,7 @@ var (
 		{MacAddress: "C8:C9:A3:5E:03:8C", Name: "Backyard"},
 		{MacAddress: "4C:11:AE:07:92:19", Name: "Garage"},
 		{MacAddress: "24:D7:EB:C6:8E:6D", Name: "Server Room"},
+		{MacAddress: "84:F3:EB:16:70:3E", Name: "Pantry"},
 	}
 
 	currentReadings map[string]TempSensorReading
