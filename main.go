@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -31,14 +32,17 @@ type TempSensorReading struct {
 	Timestamp   string  `json:"timestamp"`
 }
 
-var devices []Device = []Device{
-	{MacAddress: "2C:F4:32:1A:87:C0", Name: "Office"},
-	{MacAddress: "C8:C9:A3:5E:03:8C", Name: "Backyard"},
-	{MacAddress: "4C:11:AE:07:92:19", Name: "Garage"},
-	{MacAddress: "24:D7:EB:C6:8E:6D", Name: "Server Room"},
-}
+var (
+	devices []Device = []Device{
+		{MacAddress: "2C:F4:32:1A:87:C0", Name: "Office"},
+		{MacAddress: "C8:C9:A3:5E:03:8C", Name: "Backyard"},
+		{MacAddress: "4C:11:AE:07:92:19", Name: "Garage"},
+		{MacAddress: "24:D7:EB:C6:8E:6D", Name: "Server Room"},
+	}
 
-var currentReadings map[string]TempSensorReading
+	currentReadings map[string]TempSensorReading
+	mu              sync.Mutex
+)
 
 func getDeviceName(macAddress string) string {
 	for _, device := range devices {
@@ -89,6 +93,8 @@ func main() {
 			return
 		}
 
+		mu.Lock()
+		defer mu.Unlock()
 		now := time.Now().In(location)
 		currentReadings[deviceName] = TempSensorReading{Temperature: data.Temperature, Timestamp: now.String()}
 
