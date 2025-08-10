@@ -3,11 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"database/sql"
+
+	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -23,8 +28,8 @@ type TempSensorData struct {
 }
 
 type Device struct {
-	MacAddress string
-	Name       string
+	ID   string
+	Name string
 }
 
 type TempSensorReading struct {
@@ -33,31 +38,52 @@ type TempSensorReading struct {
 }
 
 var (
-	devices []Device = []Device{
-		{MacAddress: "C8:C9:A3:5E:03:8C", Name: "Backyard"},
-		{MacAddress: "4C:11:AE:07:92:19", Name: "Garage"},
-		{MacAddress: "24:D7:EB:C6:8E:6D", Name: "Server Room"},
-		{MacAddress: "84:F3:EB:16:70:3E", Name: "Pantry"},
-		{MacAddress: "2C:F4:32:1E:DF:DC", Name: "Living Room"},
-	}
-
+	devicesCache    map[string]Device
 	currentReadings map[string]TempSensorReading
 	mu              sync.Mutex
 )
 
-func getDeviceName(macAddress string) string {
-	for _, device := range devices {
-		if device.MacAddress == macAddress {
-			return device.Name
+func createTables(db *sql.DB) {
+	var statements = []string{
+		"CREATE TABLE IF NOT EXISTS devices(id TEXT NOT NULL PRIMARY KEY, name TEXT)",
+		"CREATE TABLE IF NOT EXISTS temperature_readings(id INTEGER PRIMARY KEY, device_id TEXT NOT NULL, temp_f FLOAT, timestamp DATETIME)",
+	}
+
+	for _, stmt := range statements {
+		_, err := db.Exec(stmt)
+		if err != nil {
+			log.Fatalf("%q: %s\n", err, stmt)
 		}
 	}
-	return macAddress
+}
+
+func getDevice(id string, db *sql.DB) Device {
+	device, ok := devicesCache[id]
+	if ok {
+		return device
+	}
+
+	row := db.QueryRow("select id, name from devices where id = ?", id)
+
+	if err := row.Scan(&device.ID, &device.Name); err != nil {
+		log.Fatal(err)
+	}
+	devicesCache[id] = device
+
+	return device
 }
 
 func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	db, err := sql.Open("sqlite3", "./weather-station.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	createTables(db)
 
 	currentReadings = make(map[string]TempSensorReading)
 	location, err := time.LoadLocation("America/Denver")
@@ -84,12 +110,12 @@ func main() {
 			return
 		}
 
-		deviceName := getDeviceName(data.MacAddress)
+		device := getDevice(data.MacAddress, db)
 
 		// sometimes the temp can be outside the valid range
 		// we will log an error and ignore it as a bad read
 		if data.Temperature < minTempF || data.Temperature > maxTempF {
-			slog.Error("temperature outside of valid range", "device", deviceName, "temp", data.Temperature)
+			slog.Error("temperature outside of valid range", "device", device.Name, "temp", data.Temperature)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -97,9 +123,9 @@ func main() {
 		mu.Lock()
 		defer mu.Unlock()
 		now := time.Now().In(location)
-		currentReadings[deviceName] = TempSensorReading{Temperature: data.Temperature, Timestamp: now.String()}
+		currentReadings[device.Name] = TempSensorReading{Temperature: data.Temperature, Timestamp: now.Format(time.RFC3339)}
 
-		slog.Info("New reading", "device", deviceName, "temp", data.Temperature)
+		slog.Info("New reading", "device", device.Name, "temp", data.Temperature)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
