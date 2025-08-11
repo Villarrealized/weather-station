@@ -20,11 +20,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 
 COPY --from=builder /build/weather-station /app/weather-station
-RUN mkdir -p /app/data && chmod +x /app/weather-station && chown -R appuser:appgroup /app
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
+RUN chmod +x /app/weather-station && chown appuser:appgroup /app/weather-station
 USER appuser
+
 EXPOSE 8367
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/app/weather-station"]
