@@ -23,5 +23,8 @@ COPY --from=builder /build/weather-station /app/weather-station
 RUN mkdir -p /app/data && chmod +x /app/weather-station && chown -R appuser:appgroup /app
 USER appuser
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8367
-CMD ["/app/weather-station"]
+ENTRYPOINT ["/entrypoint.sh"]
