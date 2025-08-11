@@ -9,28 +9,42 @@
             tbody td {
                 padding: 2px 12px;
             }
+
+            .table-fixed-header {
+                overflow: auto;
+                height: 90vh;
+            }
+
+            .table-fixed-header thead th {
+                position: sticky;
+                top: -1px;
+                background: white;
+                height: 32px;
+            }
         </style>
     </head>
     <body>
-        <table border="1">
-            <thead>
-                <tr>
-                    {{ range .Headers }}
-                    <th>{{ . }}</th>
+        <div class="table-fixed-header">
+            <table border="1">
+                <thead>
+                    <tr>
+                        {{ range .Headers }}
+                        <th>{{ . }}</th>
+                        {{ end }}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Rows }}
+                    <tr>
+                        {{ range . }} {{if .}}
+                        <td>{{printf "%.2f" .TempF }}°F ({{ FormatDate .Timestamp }})</td>
+                        {{else}}
+                        <td></td>
+                        {{end}} {{ end }}
+                    </tr>
                     {{ end }}
-                </tr>
-            </thead>
-            <tbody>
-                {{ range .Rows }}
-                <tr>
-                    {{ range . }} {{if .}}
-                    <td>{{printf "%.2f" .TempF }}°F ({{ FormatDate .Timestamp }})</td>
-                    {{else}}
-                    <td></td>
-                    {{end}} {{ end }}
-                </tr>
-                {{ end }}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     </body>
 </html>
