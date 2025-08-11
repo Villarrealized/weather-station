@@ -38,7 +38,7 @@ type TempSensorReading struct {
 }
 
 var (
-	devicesCache    map[string]Device
+	devicesCache    = make(map[string]Device)
 	currentReadings map[string]TempSensorReading
 	mu              sync.Mutex
 )
