@@ -14,8 +14,6 @@ type Device struct {
 }
 
 type TemperatureReading struct {
-	ID        string
-	DeviceID  string
 	TempF     float32
 	Timestamp time.Time
 }

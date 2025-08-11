@@ -3,10 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
+	"time"
 
 	"database/sql"
 
@@ -26,7 +29,44 @@ type TemperatureRequest struct {
 	TempF      float32 `json:"temperature"`
 }
 
+type TempTableData struct {
+	Headers []string
+	Rows    [][]*data.TemperatureReading
+}
+
 var db *data.Database
+
+func FormatDate(t time.Time) string {
+	return t.Format("2006-01-02 03:04:05 PM")
+}
+
+func makeTempTable(tempReadings map[string][]data.TemperatureReading) TempTableData {
+	headers := make([]string, 0, len(tempReadings))
+	for h := range tempReadings {
+		headers = append(headers, h)
+	}
+	slices.Sort(headers)
+
+	maxLen := 0
+	for _, readings := range tempReadings {
+		if len(readings) > maxLen {
+			maxLen = len(readings)
+		}
+	}
+
+	rows := make([][]*data.TemperatureReading, maxLen)
+	for i := range maxLen {
+		row := make([]*data.TemperatureReading, len(headers))
+		for index, header := range headers {
+			if i < len(tempReadings[header]) {
+				row[index] = &tempReadings[header][i]
+			}
+		}
+		rows[i] = row
+	}
+
+	return TempTableData{Headers: headers, Rows: rows}
+}
 
 func main() {
 	r := chi.NewRouter()
@@ -42,12 +82,16 @@ func main() {
 	db = data.NewDatabase(dbConnection)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		readings, err := json.Marshal(db.GetTemperatureReadings())
-		if err != nil {
-			slog.Error("failed to marshall temperature data", "error", err)
-			w.WriteHeader(http.StatusInternalServerError)
+		readings := db.GetTemperatureReadings()
+		funcs := template.FuncMap{
+			"FormatDate": FormatDate,
 		}
-		w.Write(readings)
+
+		tmpl := template.Must(
+			template.New("index.html").Funcs(funcs).ParseFiles("html/index.html"),
+		)
+
+		tmpl.Execute(w, makeTempTable(readings))
 	})
 
 	r.Post("/temperature", func(w http.ResponseWriter, r *http.Request) {
