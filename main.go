@@ -78,7 +78,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	db, err := sql.Open("sqlite3", "./weather-station.db")
+	db, err := sql.Open("sqlite3", "./data/weather-station.db")
 	if err != nil {
 		log.Fatal(err)
 	}
