@@ -5,7 +5,7 @@ services:
         build: .
         image: Villarrealized/weather-station
         volumes:
-            - ./data:/app
+            - ./data:/app/data
         healthcheck:
             test: ["CMD", "wget", "-q", "--spider", "http://localhost:8367/health"]
             interval: 60s
