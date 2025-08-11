@@ -24,7 +24,7 @@
                 {{ range .Rows }}
                 <tr>
                     {{ range . }} {{if .}}
-                    <td>{{ .TempF }}°F ({{ FormatDate .Timestamp }})</td>
+                    <td>{{printf "%.2f" .TempF }}°F ({{ FormatDate .Timestamp }})</td>
                     {{else}}
                     <td></td>
                     {{end}} {{ end }}
