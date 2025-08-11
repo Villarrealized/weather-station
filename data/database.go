@@ -21,9 +21,8 @@ type TemperatureReading struct {
 }
 
 type InMemoryCache struct {
-	mu           sync.Mutex
-	devices      map[string]Device
-	tempReadings map[string][]TemperatureReading
+	mu      sync.Mutex
+	devices map[string]Device
 }
 
 type Database struct {
@@ -41,8 +40,7 @@ func NewDatabase(db *sql.DB) *Database {
 		dbInstance = &Database{
 			db: db,
 			cache: &InMemoryCache{
-				devices:      make(map[string]Device),
-				tempReadings: make(map[string][]TemperatureReading),
+				devices: make(map[string]Device),
 			},
 		}
 
@@ -97,26 +95,17 @@ func (d *Database) AddTempReading(deviceID string, tempF float32) error {
 		return err
 	}
 
-	d.cache.mu.Lock()
-	defer d.cache.mu.Unlock()
-	d.cache.tempReadings[deviceID] = append(d.cache.tempReadings[deviceID], TemperatureReading{TempF: tempF, Timestamp: now})
-
 	return nil
 }
 
 func (d *Database) GetTemperatureReadings() map[string][]TemperatureReading {
-	if len(d.cache.tempReadings) > 0 {
-		return d.cache.tempReadings
-	}
-
 	rows, err := d.db.Query("select devices.name, r.temp_f, r.timestamp from devices JOIN temperature_readings AS r ON devices.id = r.device_id order by r.timestamp desc")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 
-	d.cache.mu.Lock()
-	defer d.cache.mu.Unlock()
+	var readings = make(map[string][]TemperatureReading)
 
 	for rows.Next() {
 		var reading TemperatureReading
@@ -125,12 +114,12 @@ func (d *Database) GetTemperatureReadings() map[string][]TemperatureReading {
 			log.Fatal(err)
 		}
 
-		d.cache.tempReadings[deviceName] = append(d.cache.tempReadings[deviceName], reading)
+		readings[deviceName] = append(readings[deviceName], reading)
 	}
 
 	if err := rows.Err(); err != nil {
 		log.Fatal(err)
 	}
 
-	return d.cache.tempReadings
+	return readings
 }
