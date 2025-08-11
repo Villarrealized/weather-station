@@ -24,4 +24,4 @@ RUN chmod +x /app/weather-station && chown appuser:appgroup /app/weather-station
 USER appuser
 
 EXPOSE 8367
-CMD ["./weather-station"]
+CMD ["/app/weather-station"]
