@@ -42,16 +42,17 @@ func NewDatabase(db *sql.DB) *Database {
 			},
 		}
 
-		dbInstance.createTables()
+		dbInstance.runMigrations()
 	})
 
 	return dbInstance
 }
 
-func (d *Database) createTables() {
+func (d *Database) runMigrations() {
 	var statements = []string{
 		"CREATE TABLE IF NOT EXISTS devices(id TEXT NOT NULL PRIMARY KEY, name TEXT)",
 		"CREATE TABLE IF NOT EXISTS temperature_readings(id INTEGER PRIMARY KEY, device_id TEXT NOT NULL, temp_f FLOAT, timestamp DATETIME)",
+		"CREATE INDEX idx_temperature_readings_device_id ON temperature_readings(device_id)",
 	}
 
 	for _, stmt := range statements {
