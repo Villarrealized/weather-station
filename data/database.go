@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -52,15 +53,18 @@ func (d *Database) runMigrations() {
 	var statements = []string{
 		"CREATE TABLE IF NOT EXISTS devices(id TEXT NOT NULL PRIMARY KEY, name TEXT)",
 		"CREATE TABLE IF NOT EXISTS temperature_readings(id INTEGER PRIMARY KEY, device_id TEXT NOT NULL, temp_f FLOAT, timestamp DATETIME)",
-		"CREATE INDEX idx_temperature_readings_device_id ON temperature_readings(device_id)",
+		"CREATE INDEX IF NOT EXISTS idx_temperature_readings_device_id ON temperature_readings(device_id)",
 	}
 
+	slog.Info("Running db migrations...")
 	for _, stmt := range statements {
 		_, err := d.db.Exec(stmt)
 		if err != nil {
 			log.Fatalf("%q: %s\n", err, stmt)
 		}
+		slog.Info("Ran migration", "stmt", stmt)
 	}
+	slog.Info("Database migrations complete!\n\n")
 }
 
 func (d *Database) GetDevice(id string) Device {
